@@ -355,6 +355,9 @@ TOKEN: /* SQL Keywords. prefixed with K_ to avoid name clashes */
 |   <K_WITHIN:"WITHIN">
 |   <K_WITHOUT:"WITHOUT">
 |   <K_XML:"XML">
+|   <K_XMLSERIALIZE:"XMLSERIALIZE">
+|   <K_XMLAGG:"XMLAGG">
+|   <K_XMLTEXT:"XMLTEXT">
 |   <K_YAML:"YAML">
 |   <K_ZONE:"ZONE">
 }
@@ -3227,6 +3230,8 @@ Expression PrimaryExpression() #PrimaryExpression:
 
         | retval=MySQLGroupConcat()
 
+        | retval=XMLSerializeExpr()
+
         | LOOKAHEAD(JsonExpression()) retval=JsonExpression()
 
         | LOOKAHEAD(FunctionWithCondParams()) retval = FunctionWithCondParams()
@@ -3782,6 +3787,30 @@ Function InternalFunction(Function retval) :
         return retval;
     }
 }
+
+XMLSerializeExpr XMLSerializeExpr(): {
+   XMLSerializeExpr result;
+   Expression expression;
+   List<OrderByElement> orderByElements = null;
+   ColDataType dataType;
+}
+{
+    <K_XMLSERIALIZE> 
+        "(" <K_XMLAGG> 
+                "(" <K_XMLTEXT> 
+                        "(" expression=SimpleExpression() ")"
+                [ orderByElements=OrderByElements() ]
+        ")"
+        <K_AS> dataType=ColDataType() ")"
+    {
+        result = new XMLSerializeExpr();
+        result.setExpression(expression);
+        result.setOrderByElements(orderByElements);
+        result.setDataType(dataType);
+        return result;
+    }
+}
+
 
 MySQLGroupConcat MySQLGroupConcat():{
     MySQLGroupConcat retval = new MySQLGroupConcat();
@@ -4466,6 +4495,8 @@ Drop Drop():
         tk=<K_VIEW>
         |
         tk=<K_SCHEMA>
+        |
+        tk=<K_SEQUENCE>
     )
     { drop.setType(tk.image); }
 
